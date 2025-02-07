@@ -120,7 +120,9 @@ bnr_last_update_date 1707147600.0
 
 ## Data Source
 
-Exchange rates are fetched from BNR's official XML feed: https://www.bnr.ro/nbrfxrates.xml
+Exchange rates are fetched from BNR's official XML feed. The data source URL can be configured via the `EXCHANGE_RATES_URL` environment variable.
+
+Default source: https://www.bnr.ro/nbrfxrates.xml
 
 ## Contributing
 

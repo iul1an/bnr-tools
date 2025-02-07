@@ -38,7 +38,7 @@ async def fetch_and_send_rates(dry_run: bool = False, currencies: Optional[str] 
         logger.debug(f"Filtering currencies: {', '.join(selected_currencies)}")
 
     # Fetch XML data
-    url = 'https://www.bnr.ro/nbrfxrates.xml'
+    url = os.getenv('EXCHANGE_RATES_URL', 'https://www.bnr.ro/nbrfxrates.xml')
     try:
         logger.debug("Fetching rates from BNR")
         response = requests.get(url)

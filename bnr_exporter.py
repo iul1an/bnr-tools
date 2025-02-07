@@ -53,7 +53,7 @@ def fetch_rates():
     scrape_time = time.time()
     update_date = 0
 
-    url = 'https://www.bnr.ro/nbrfxrates.xml'
+    url = os.getenv('EXCHANGE_RATES_URL', 'https://www.bnr.ro/nbrfxrates.xml')
     try:
         logger.debug("Fetching rates from BNR")
         response = requests.get(url)
