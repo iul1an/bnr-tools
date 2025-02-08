@@ -1,0 +1,176 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: bnr-tools
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: bnr2telegram
+  namespace: bnr-tools
+spec:
+  schedule: "45 11 * * 1-5"  # Runs at 11:45 UTC every weekday
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    metadata:
+      name: bnr2telegram
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - image: bnr-tools:latest
+              imagePullPolicy: IfNotPresent
+              name: bnr2telegram
+              args: ["bnr2telegram.py", "--currencies", "EUR,USD,GBP"]
+              env:
+               - name: EXCHANGE_RATES_URL
+                 value: http://exchange-rates/nbrfxrates.xml
+               - name: TELEGRAM_BOT_TOKEN
+                 value: "your_bot_token"
+               - name: TELEGRAM_CHANNEL_ID
+                 value: "@your_channel_name"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: bnr-exporter
+  name: bnr-exporter
+  namespace: bnr-tools
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: bnr-exporter
+  template:
+    metadata:
+      labels:
+        app: bnr-exporter
+    spec:
+      containers:
+      - image: bnr-tools:latest
+        imagePullPolicy: IfNotPresent
+        name: bnr-tools
+        args: ["bnr_exporter.py"]
+        env:
+        - name: EXCHANGE_RATES_URL
+          value: http://exchange-rates/nbrfxrates.xml
+        ports:
+          - name: metrics
+            containerPort: 8000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: bnr-exporter
+  namespace: bnr-tools
+  labels:
+    app: bnr-exporter
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "8000"
+    prometheus.io/path: "/metrics"
+spec:
+  selector:
+    app: bnr-exporter
+  ports:
+    - name: metrics
+      port: 8000
+      targetPort: metrics
+  type: ClusterIP
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: exchange-rates-pvc
+  namespace: bnr-tools
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: your-storage-class
+  resources:
+    requests:
+      storage: 128Mi
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: sync-exchange-rates
+  namespace: bnr-tools
+spec:
+  schedule: "30 11 * * 1-5"  # Runs at 11:30 UTC every weekday
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    metadata:
+      name: sync-exchange-rates
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          volumes:
+            - name: data
+              persistentVolumeClaim:
+                claimName: exchange-rates-pvc
+          containers:
+            - image: curlimages/curl:latest
+              imagePullPolicy: IfNotPresent
+              name: sync-exchange-rates
+              args: ["-O", "https://www.bnro.ro/nbrfxrates.xml"]
+              volumeMounts:
+                - name: data
+                  mountPath: /data
+              workingDir: /data
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: bnr-exporter
+  name: exchange-rates
+  namespace: bnr-tools
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: exchange-rates
+  template:
+    metadata:
+      labels:
+        app: exchange-rates
+    spec:
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: exchange-rates-pvc
+      containers:
+      - image: nginx:stable-alpine
+        name: exchange-rates
+        imagePullPolicy: IfNotPresent
+        volumeMounts:
+          - name: data
+            mountPath: /usr/share/nginx/html
+        ports:
+          - name: http
+            containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: exchange-rates
+  namespace: bnr-tools
+  labels:
+    app: exchange-rates
+spec:
+  selector:
+    app: exchange-rates
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+  type: ClusterIP
