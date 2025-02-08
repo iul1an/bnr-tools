@@ -1,0 +1,18 @@
+services:
+  bnr-exporter:
+    build: .
+    image: bnr-tools:latest
+    command: ["bnr_exporter.py"]
+    ports:
+      - "${EXPORTER_PORT:-9100}:8000"
+    environment:
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      EXCHANGE_RATES_URL: ${EXCHANGE_RATES_URL:-https://www.bnr.ro/nbrfxrates.xml}
+  bnr2telegram:
+    build: .
+    image: bnr-tools:latest
+    command: ["bnr2telegram.py", "--currencies", "${CURRENCIES:-EUR,USD,GBP}"]
+    environment:
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+      TELEGRAM_CHANNEL_ID: ${TELEGRAM_CHANNEL_ID}

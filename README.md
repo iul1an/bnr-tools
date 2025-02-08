@@ -11,24 +11,24 @@ Tools for working with Romanian National Bank (BNR) exchange rates.
 
 ## Installation
 
+### Clone the repository
 ```bash
-# Clone the repository
 git clone https://github.com/iul1an/bnr-tools.git
 cd bnr-tools
 ```
 
-Install dependencies locally
+### Install dependencies locally
 ```
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-OR
+**OR**
 
-Using docker:
+### Using Docker Compose:
 ```bash
-docker build -t bnr-tools ./
+docker compose build
 ```
 
 ## Tools
@@ -43,6 +43,7 @@ Set the following environment variables:
 ```bash
 export TELEGRAM_BOT_TOKEN='your_bot_token'
 export TELEGRAM_CHANNEL_ID='@your_channel_name' # or channel ID like '-1001234567890'
+export CURRENCIES='USD,EUR,GBP'
 ```
 
 #### Usage
@@ -53,23 +54,27 @@ Using Python:
 python bnr2telegram.py
 
 # Send specific currencies
-python bnr2telegram.py --currencies EUR,USD,GBP
+python bnr2telegram.py --currencies ${CURRENCIES}
 
 # Test mode (prints to console instead of sending to Telegram)
-python bnr2telegram.py --dry-run --currencies EUR,USD
+python bnr2telegram.py --dry-run --currencies ${CURRENCIES}
 ```
 
-Using Docker:
+Using Docker Compose:
 ```bash
-docker run --rm --name bnr2telegram \
-  -e TELEGRAM_BOT_TOKEN='your_bot_token' \
-  -e TELEGRAM_CHANNEL_ID='@your_channel_name' \
-  bnr-tools bnr2telegram.py --currencies USD,EUR,GBP
+docker compose up bnr2telegram
 ```
 
 ### bnr_exporter.py
 
 Prometheus exporter for BNR exchange rates.
+
+#### Configuration
+
+Set the following environment variables:
+```bash
+export EXPORTER_PORT=9100
+```
 
 #### Usage
 
@@ -79,12 +84,12 @@ Using Python:
 python bnr_exporter.py
 
 # Use custom port
-python bnr_exporter.py --port 9100
+python bnr_exporter.py --port ${EXPORTER_PORT}
 ```
 
-Using Docker:
+Using Docker Compose:
 ```bash
-docker run -d -p 9100:8000 --name bnr_exporter bnr-tools bnr_exporter.py
+docker compose up bnr-exporter
 ```
 
 #### Prometheus Configuration
